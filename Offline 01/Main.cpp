@@ -17,7 +17,6 @@ int main() {
 
     NPuzzle npuzzle(k);
     npuzzle.initGrid();
-    // npuzzle.printGrid();
     npuzzle.solve();
 
     cin.rdbuf(cin_buf);
