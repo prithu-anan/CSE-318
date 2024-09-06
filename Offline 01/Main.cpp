@@ -25,3 +25,9 @@ int main() {
     output_file.close();
     return 0;
 }
+
+// 4
+// 1 3 4 10
+// 6 5 7 2
+// 9 12 8 11
+// 14 13 15 0
