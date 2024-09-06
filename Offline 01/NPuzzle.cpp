@@ -1,4 +1,5 @@
 #include <iostream>
+#include <iomanip>
 #include <vector>
 #include <queue>
 #include <stack>
@@ -127,12 +128,12 @@ class NPuzzle {
     }
 
     void printGrid(Grid& grid) {
-        for(auto row : grid) {
+        for(auto row : grid) {           
             for(auto box : row)
-                cout << box << " ";
+                cout << setw(3) << box << " ";
             cout << endl;
         }
-        cout << endl;
+        cout << endl << endl;
     }
 
     void printSolution(shared_ptr<Node> node) {
