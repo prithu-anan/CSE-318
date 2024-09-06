@@ -12,6 +12,11 @@ using namespace std;
 using namespace std::chrono;
 typedef vector<vector<string>> Grid;
 
+enum Heuristic {
+    HAMMING = 0,
+    MANHATTAN = 1
+};
+
 class NPuzzle {
     int k;
     Grid initial, goal;
@@ -25,20 +30,15 @@ class NPuzzle {
         INVALID = 5
     };
 
-    enum Heuristic {
-        HAMMING = 0,
-        MANHATTAN = 1
-    };
-
     struct Node {
         Grid grid;
         shared_ptr<Node> prev; 
         int parent_move, g, f;       
 
-        Node(Grid& board, int pm = NOOP, shared_ptr<Node> parent = nullptr, int actual = 0, int total = 0) {            
+        Node(Grid& board, int direction = NOOP, shared_ptr<Node> parent = nullptr, int actual = 0, int total = 0) {            
             grid = board;
             prev = parent;
-            parent_move = pm;
+            parent_move = direction;
             g = actual;
             f = total;
         }
@@ -49,6 +49,26 @@ class NPuzzle {
             return n1->f > n2->f;
         }
     };
+
+    bool isValid() {
+        vector<int> valid((k * k) - 1, 0);
+
+        for(auto row : initial) {
+            for(auto cell : row) {
+                if(cell == "*")
+                    continue;
+                if(stoi(cell) >= k * k || stoi(cell) <= 0)
+                    return false;
+                valid[stoi(cell) - 1]++;
+            }
+        }
+
+        for(auto elem : valid)
+            if(elem != 1)
+                return false;
+
+        return true;
+    }
 
     int conquer(vector<int>& flat, int left, int mid, int right) {
         vector<int> temp;
@@ -87,9 +107,9 @@ class NPuzzle {
         vector<int> flat;
 
         for(auto row : initial) {
-            for(auto box : row) {
-                if(box != "*") {
-                    flat.push_back(stoi(box));
+            for(auto cell : row) {
+                if(cell != "*") {
+                    flat.push_back(stoi(cell));
                 }
             }
         }
@@ -100,9 +120,9 @@ class NPuzzle {
 
     int findBlankRow() {
         for(int row = 0; row < k; row++)
-            for(auto box : initial[row])
-                if(box == "*")
-                    return k - row - 1;
+            for(auto cell : initial[row])
+                if(cell == "*")
+                    return k - row;
         return -1;
     }
 
@@ -114,7 +134,7 @@ class NPuzzle {
             return isInversionEven;
         else {
             int blankRow = findBlankRow();
-            bool isBlankRowEven = (blankRow % 2 != 0);
+            bool isBlankRowEven = (blankRow % 2 == 0);
             return isBlankRowEven ^ isInversionEven;
         }
     }
@@ -122,15 +142,15 @@ class NPuzzle {
     string flattenGrid(Grid grid) {
         string flat = "";
         for(auto row : grid)
-            for(auto box : row)
-                flat += box + "#";
+            for(auto cell : row)
+                flat += cell + "#";
         return flat;
     }
 
     void printGrid(Grid& grid) {
         for(auto row : grid) {           
-            for(auto box : row)
-                cout << setw(3) << box << " ";
+            for(auto cell : row)
+                cout << setw(3) << cell << " ";
             cout << endl;
         }
         cout << endl << endl;
@@ -220,6 +240,7 @@ class NPuzzle {
 
         open.push(make_shared<Node>(initial));
         expanded_nodes++;
+
         while(!open.empty()) {
             auto node = open.top();
             explored_nodes++;
@@ -280,12 +301,15 @@ class NPuzzle {
         }
     }
 
-    void solve() {
+    void solve(int heuristic) {
+        if(!isValid()) {
+            cout << "Input not valid" << endl;
+            return;
+        }
         if(!isSolvable()) {
             cout << "Puzzle not solvable" << endl;
             return;
         }        
-        AStarSearch(MANHATTAN);
-        AStarSearch(HAMMING);
+        AStarSearch(heuristic);
     }
 };
