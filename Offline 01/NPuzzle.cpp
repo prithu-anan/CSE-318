@@ -5,8 +5,10 @@
 #include <map>
 #include <cmath>
 #include <memory>
+#include <chrono>
 
 using namespace std;
+using namespace std::chrono;
 typedef vector<vector<string>> Grid;
 
 class NPuzzle {
@@ -209,6 +211,7 @@ class NPuzzle {
     }
 
     void AStarSearch(int distance = MANHATTAN) {
+        auto start = high_resolution_clock::now();
         priority_queue<shared_ptr<Node>, vector<shared_ptr<Node>>, Compare> open;
         map<string, int> close;
         int explored_nodes = 0, expanded_nodes = 0;
@@ -224,9 +227,12 @@ class NPuzzle {
             close[flat] = node->f;
 
             if(flat == goal_flat) {
-                cout << "Using " << ((distance == HAMMING) ? "Hamming" : "Manhattan") << " Distance" << endl; 
+                auto end = high_resolution_clock::now();
+                cout << "Using " << ((distance == HAMMING) ? "Hamming" : "Manhattan") << " Distance:" << endl; 
+                auto duration = duration_cast<milliseconds>(end - start);
+                cout << "Search Duration: " << duration.count() << " ms" << endl;
                 cout << "Expanded Nodes: " << expanded_nodes << endl;
-                cout << "Explored Nodes: " << explored_nodes << endl;
+                cout << "Explored Nodes: " << explored_nodes << endl;                
                 printSolution(node);
                 return;
             }
