@@ -2,13 +2,16 @@
 #include <iomanip>
 #include <vector>
 #include <limits>
+#include <random>
 using namespace std;
 
-# define DEPTH 10
+# define DEPTH 5
+# define MIN_WEIGHT 1
+# define MAX_WEIGHT 9
 
 enum players {
-    PLAYER1 = 1,
-    PLAYER2 = 2
+    PLAYER1 = 0,
+    PLAYER2 = 1
 };
 
 enum states {
@@ -20,18 +23,29 @@ enum states {
     DRAW = 4
 };
 
+enum heuristics {
+    H1 = 1,
+    H2 = 2,
+    H3 = 3,
+    H4 = 4
+};
+
 class Mancala {
     struct Board {
-        vector<int> pits1;
-        vector<int> pits2;
-        int mancala1;
-        int mancala2;
+        vector<int> pits1, pits2;
+        int mancala1, mancala2;
+        int additionalMove1, additionalMove2;
+        int capturedStones1, capturedStones2;
 
         Board() {
             pits1 = vector<int>(7, 4);
             pits2 = vector<int>(7, 4);
             mancala1 = 0;
             mancala2 = 0;
+            additionalMove1 = 0;
+            additionalMove2 = 0;
+            capturedStones1 = 0;
+            capturedStones2 = 0;
         }
 
         Board(const Board& other) {
@@ -39,18 +53,36 @@ class Mancala {
             pits2 = other.pits2;
             mancala1 = other.mancala1;
             mancala2 = other.mancala2;
+            additionalMove1 = other.additionalMove1;
+            additionalMove2 = other.additionalMove2;
+        }
+
+        int countStones(int player) {
+            vector<int>& pits = player == PLAYER1 ? pits1 : pits2;
+            int count = 0;
+
+            for(int i = 1; i <= 6; i++)
+                count += pits[i];
+            
+            return count;
         }
     };
 
     Board board;
+    vector<int> weigths1, weigths2;
+    mt19937 gen;
 
-    bool areAllPitsEmpty(int player) {
-        vector<int>& pits = player == PLAYER1 ? board.pits1 : board.pits2;
-        for(int i = 1; i <= 6; i++) {
-            if(pits[i] != 0)
-                return false;
-        }
-        return true;
+    int getRandomNumber(int min, int max) {
+        uniform_int_distribution<> dis(min, max);
+        return dis(gen);
+    }
+
+    void initRandomWeights(vector<int>& weights, int numWeights) {
+        for (int i = 0; i < numWeights; ++i)
+            weights.push_back(getRandomNumber(MIN_WEIGHT, MAX_WEIGHT));
+
+        for (int i = numWeights; i < 4; i++)
+            weights.push_back(0);
     }
 
     int calculateWinner() {
@@ -69,56 +101,8 @@ class Mancala {
             return DRAW;
     }
 
-    // int move(int player, int pit) {
-    //     vector<int>& myPits = ((player == PLAYER1) ? board.pits1 : board.pits2);
-    //     vector<int>& opponentPits = ((player == PLAYER2) ? board.pits1 : board.pits2);
-
-    //     int& myMancala = ((player == PLAYER1) ? board.mancala1 : board.mancala2);
-    //     int& opponentMancala = ((player == PLAYER2) ? board.mancala1 : board.mancala2);
-
-    //     if(myPits[pit] == 0 || pit < 1 || pit > 6) 
-    //         return INVALID_MOVE;
-
-    //     int count = myPits[pit];
-    //     myPits[pit] = 0;
-
-    //     for(int i = 1; i <= count; i++) {
-    //         if((pit + i) % 14 <= 6) {
-    //             myPits[pit + i]++;
-                
-    //             if(i == count && myPits[pit + i] == 1 && opponentPits[7 - (pit + i)] > 0) {
-    //                 myMancala += myPits[pit + i] + opponentPits[7 - (pit + i)];
-    //                 myPits[pit + i] = 0;
-    //                 opponentPits[7 - (pit + i)] = 0;
-    //             }
-    //         }
-
-    //         else if((pit + i) % 14 == 7) {
-    //             myMancala++;
-
-    //             if(i == count) {
-    //                 myPits[pit + i] = 0;
-    //                 return MOVE_AGAIN;
-    //             }
-    //         }
-
-    //         else if((pit + i) % 14 <= 13 && (pit + i) % 14 >= 8)
-    //             opponentPits[pit + i - 7]++;
-            
-    //         else 
-    //             opponentMancala++;
-    //     }
-
-    //     return CONTINUE;
-    // }
-
-    /*
-            |   4   4   4   4   4   4   |
-        0   |                           |   0
-            |   4   4   4   4   4   4   |
-    */
-
-   void printBoard() {
+   void printBoard(bool isFile) {
+        cout << endl;
         cout << setw(8) << "";
         for(int i = 6; i >= 1; i--)
             cout << setw(4) << i;
@@ -129,24 +113,43 @@ class Mancala {
             cout << "-";
         cout << endl;
 
-        cout << setw(8) << "|";
-        cout << "\033[31m";
-        for(int i = 1; i <= 6; i++)
-            cout << setw(4) << board.pits2[7 - i];
-        cout << "\033[0m";
-        cout << setw(4) << "|" << endl;
+        if(isFile) {
+            cout << setw(8) << "|";
+            for(int i = 1; i <= 6; i++)
+                cout << setw(4) << board.pits2[7 - i];
+            cout << setw(4) << "|" << endl;
 
-        cout << "\033[31m" << setw(4) << board.mancala2 << "\033[0m" <<setw(4) << "|";
-        for(int i = 1; i <= 6; i++)
-            cout << setw(4) << "";
-        cout << setw(4) << "|" << "\033[34m" << setw(4) << board.mancala1 << "\033[0m" << endl;
+            cout << setw(4) << board.mancala2 <<setw(4) << "|";
+            for(int i = 1; i <= 6; i++)
+                cout << setw(4) << "";
+            cout << setw(4) << "|" << setw(4) << board.mancala1 << endl;
 
-        cout << setw(8) << "|";
-        cout << "\033[34m";
-        for(int i = 1; i <= 6; i++)
-            cout << setw(4) << board.pits1[i];
-        cout << "\033[0m";
-        cout << setw(4) << "|" << endl;
+            cout << setw(8) << "|";
+            for(int i = 1; i <= 6; i++)
+                cout << setw(4) << board.pits1[i];
+            cout << setw(4) << "|" << endl;
+        }
+
+        else {
+            cout << setw(8) << "|";
+            cout << "\033[31m";
+            for(int i = 1; i <= 6; i++)
+                cout << setw(4) << board.pits2[7 - i];
+            cout << "\033[0m";
+            cout << setw(4) << "|" << endl;
+
+            cout << "\033[31m" << setw(4) << board.mancala2 << "\033[0m" <<setw(4) << "|";
+            for(int i = 1; i <= 6; i++)
+                cout << setw(4) << "";
+            cout << setw(4) << "|" << "\033[34m" << setw(4) << board.mancala1 << "\033[0m" << endl;
+
+            cout << setw(8) << "|";
+            cout << "\033[34m";
+            for(int i = 1; i <= 6; i++)
+                cout << setw(4) << board.pits1[i];
+            cout << "\033[0m";
+            cout << setw(4) << "|" << endl;
+        }
 
         cout << setw(8) << "";
         for(int i = 1; i <= 27; i++)
@@ -156,19 +159,29 @@ class Mancala {
         cout << setw(8) << "";
         for(int i = 1; i <= 6; i++)
             cout << setw(4) << i;
-        cout << endl;
+        cout << endl << endl;
     }
 
-    int evaluate(const Board& board) {
-        return board.mancala2 - board.mancala1;
+    int evaluate(Board state, int weight) {
+        vector<int>& w = weight == PLAYER1 ? weigths1 : weigths2;
+        
+        int h1 = w[0] * (state.mancala1 - state.mancala2);
+        int h2 = w[1] * (state.countStones(PLAYER1) - state.countStones(PLAYER2));
+        int h3 = w[2] * (state.additionalMove1 - state.additionalMove2);
+        int h4 = w[3] * (state.capturedStones1 - state.capturedStones2);
+
+        return h1 + h2 + h3 + h4;
     }
 
-    int move(int player, int pit, Board& boardState) {
-        vector<int>& myPits = (player == PLAYER1) ? boardState.pits1 : boardState.pits2;
-        vector<int>& opponentPits = (player == PLAYER2) ? boardState.pits1 : boardState.pits2;
+    int move(int player, int pit, Board& state) {
+        vector<int>& myPits = (player == PLAYER1) ? state.pits1 : state.pits2;
+        vector<int>& opponentPits = (player == PLAYER2) ? state.pits1 : state.pits2;
 
-        int& myMancala = (player == PLAYER1) ? boardState.mancala1 : boardState.mancala2;
-        int& opponentMancala = (player == PLAYER2) ? boardState.mancala1 : boardState.mancala2;
+        int& myMancala = (player == PLAYER1) ? state.mancala1 : state.mancala2;
+        int& opponentMancala = (player == PLAYER2) ? state.mancala1 : state.mancala2;
+
+        int& additionalMove = (player == PLAYER1) ? state.additionalMove1 : state.additionalMove2;
+        int& capturedStones = (player == PLAYER1) ? state.capturedStones1 : state.capturedStones2;
 
         if (myPits[pit] == 0 || pit < 1 || pit > 6) 
             return INVALID_MOVE;
@@ -183,6 +196,7 @@ class Mancala {
                 if (i == count && myPits[(pit + i) % 14] == 1 && opponentPits[7 - ((pit + i) % 14)] > 0) {
                     myMancala += myPits[(pit + i) % 14] + opponentPits[7 - ((pit + i) % 14)];
                     myPits[(pit + i) % 14] = 0;
+                    capturedStones += opponentPits[7 - ((pit + i) % 14)];
                     opponentPits[7 - ((pit + i) % 14)] = 0;
                 }
             } 
@@ -190,8 +204,10 @@ class Mancala {
             else if ((pit + i) % 14 == 7) {
                 myMancala++;
 
-                if (i == count)
+                if (i == count) {
+                    additionalMove++;
                     return MOVE_AGAIN;
+                }
             } 
             
             else if ((pit + i) % 14 <= 13 && (pit + i) % 14 >= 8)
@@ -204,25 +220,22 @@ class Mancala {
         return CONTINUE;
     }
 
-    int minimax(Board state, int depth, bool maximizingPlayer, int alpha, int beta) {
-        if (depth == 0 || areAllPitsEmpty(PLAYER1) || areAllPitsEmpty(PLAYER2))
-            return evaluate(state);
+    int minimax(Board state, int depth, bool maximizingPlayer, int player, int alpha, int beta, int weight) {
+        if (depth == 0 || state.countStones(PLAYER1) == 0 || state.countStones(PLAYER2) == 0)
+            return evaluate(state, weight);
 
         if (maximizingPlayer) {
             int maxEval = numeric_limits<int>::min();
 
             for (int pit = 1; pit <= 6; pit++) {
-                Board newState = state;
-                int result = move(PLAYER2, pit, newState);
-
+                int result = move(player, pit, state);
                 if (result == INVALID_MOVE) continue;
-
                 int eval;
 
                 if (result == MOVE_AGAIN)
-                    eval = minimax(newState, depth - 1, true, alpha, beta);
+                    eval = minimax(state, depth - 1, maximizingPlayer, player, alpha, beta, weight);
                 else
-                    eval = minimax(newState, depth - 1, false, alpha, beta);
+                    eval = minimax(state, depth - 1, !maximizingPlayer, !player, alpha, beta, weight);
 
                 maxEval = max(maxEval, eval);
                 alpha = max(alpha, eval);
@@ -238,17 +251,14 @@ class Mancala {
             int minEval = numeric_limits<int>::max();
 
             for (int pit = 1; pit <= 6; pit++) {
-                Board newState = state;
-                int result = move(PLAYER1, pit, newState);
-
+                int result = move(player, pit, state);
                 if (result == INVALID_MOVE) continue;
-
                 int eval;
 
                 if (result == MOVE_AGAIN) 
-                    eval = minimax(newState, depth - 1, false, alpha, beta);
+                    eval = minimax(state, depth - 1, !maximizingPlayer, player, alpha, beta, weight);
                 else
-                    eval = minimax(newState, depth - 1, true, alpha, beta);
+                    eval = minimax(state, depth - 1, maximizingPlayer, !player, alpha, beta, weight);
 
                 minEval = min(minEval, eval);
                 beta = min(beta, eval);
@@ -262,15 +272,15 @@ class Mancala {
     }
 
 
-    int getBestMove(Board state, int depth) {
+    int getBestMove(Board state, int depth, int player, bool maximizingPlayer) {
         int bestMove = -1;
-        int bestValue = numeric_limits<int>::min();
+        int bestValue = maximizingPlayer ? numeric_limits<int>::min() : numeric_limits<int>::max();
 
         bool foundValidMove = false;
 
         for (int pit = 1; pit <= 6; pit++) {
             Board newState = state;
-            int result = move(PLAYER2, pit, newState);
+            int result = move(player, pit, newState);
 
             if (result == INVALID_MOVE) continue;
 
@@ -279,19 +289,29 @@ class Mancala {
             int moveValue;
 
             if (result == MOVE_AGAIN) 
-                moveValue = minimax(newState, depth - 1, true, numeric_limits<int>::min(), numeric_limits<int>::max());
+                moveValue = minimax(newState, depth - 1, maximizingPlayer, player, numeric_limits<int>::min(), numeric_limits<int>::max(), player);
             else 
-                moveValue = minimax(newState, depth - 1, false, numeric_limits<int>::min(), numeric_limits<int>::max());
+                moveValue = minimax(newState, depth - 1, !maximizingPlayer, !player, numeric_limits<int>::min(), numeric_limits<int>::max(), player);
 
-            if (moveValue > bestValue) {
-                bestValue = moveValue;
-                bestMove = pit;
+            if (maximizingPlayer) {
+                if (moveValue > bestValue) {
+                    bestValue = moveValue;
+                    bestMove = pit;
+                }
+            } 
+            else {
+                if (moveValue < bestValue) {
+                    bestValue = moveValue;
+                    bestMove = pit;
+                }
             }
         }
 
         if (!foundValidMove || bestMove == -1) {
+            vector<int>& pits = player == PLAYER1 ? state.pits1 : state.pits2;
+
             for (int pit = 1; pit <= 6; pit++) {
-                if (state.pits2[pit] > 0) {
+                if (pits[pit] > 0) {
                     bestMove = pit;
                     break;
                 }
@@ -303,56 +323,130 @@ class Mancala {
 
 
     public:
-    void play() {
+    Mancala() {
+        srand(time(0));
+        random_device rd;
+        gen.seed(rd());
+    }
+
+    void initBoard(int h1, int h2) {
+        board = Board();
+        weigths1.clear();
+        weigths2.clear();
+        
+        switch(h1) {
+            case H1:
+                weigths1 = {1, 0, 0, 0};
+                break;
+            case H2:
+                initRandomWeights(weigths1, 2);
+                break;
+            case H3:
+                initRandomWeights(weigths1, 3);
+                break;
+            case H4:
+                initRandomWeights(weigths1, 4);
+                break;
+        }
+
+        switch(h2) {
+            case H1:
+                weigths2 = {1, 0, 0, 0};
+                break;
+            case H2:
+                initRandomWeights(weigths2, 2);
+                break;
+            case H3:
+                initRandomWeights(weigths2, 3);
+                break;
+            case H4:
+                initRandomWeights(weigths2, 4);
+                break;
+        }
+    
+    }
+
+    int play(bool isFile = false, bool showBoard = false) {
         int currentPlayer = PLAYER1;
         int currentState = CONTINUE;
         int pit;
 
-        while(currentState == CONTINUE) {
-            printBoard();
+        if(showBoard)
+            cout << "Starting game..." << endl;
 
-            if(areAllPitsEmpty(PLAYER1) || areAllPitsEmpty(PLAYER2)) {
+        while(currentState == CONTINUE) {
+            if(showBoard)
+                printBoard(isFile);
+
+            if(board.countStones(PLAYER1) == 0 || board.countStones(PLAYER2) == 0) {
                 currentState = calculateWinner();
                 break;
             }
 
             if (currentPlayer == PLAYER1) {
-                cout << "Player " << currentPlayer << "'s turn:\n";
-                cin >> pit;
-            } 
+                if(showBoard)
+                    cout << "Player 1's turn: ";
+                // cin >> pit;
+                pit = getBestMove(board, DEPTH, PLAYER1, true);
+                if(showBoard)
+                    cout << pit << endl;
+            }
             else {
-                cout << "Player 2's turn:\n";
-                pit = getBestMove(board, DEPTH);
-                cout << "Player 2 chooses pit: " << pit << endl;
+                if(showBoard)
+                    cout << "Player 2's turn: ";
+                // cin >> pit;
+                pit = getBestMove(board, DEPTH, PLAYER2, false);
+                if(showBoard)
+                    cout << pit << endl;
             }
 
             currentState = move(currentPlayer, pit, board);
 
             if(currentState == INVALID_MOVE) {
-                cout << "Invalid move. Try again." << endl;
+                if(showBoard)
+                    cout << "Invalid move. Try again." << endl;
                 currentState = CONTINUE;
                 continue;
             }
 
             if(currentState == MOVE_AGAIN) {
-                cout << "Player " << currentPlayer << " gets another turn." << endl;
+                if(showBoard)
+                    cout << "Player " << currentPlayer + 1 << " gets another turn." << endl;
                 currentState = CONTINUE;
                 continue;
             }
 
-            if(currentPlayer == PLAYER1)
-                currentPlayer = PLAYER2;
-            else
-                currentPlayer = PLAYER1;
+            currentPlayer = !currentPlayer;
         }
 
-        if(currentState == PLAYER1_WINS)
+
+        if(currentState == PLAYER1_WINS) {
             cout << "Player 1 wins!" << endl;
-        else if(currentState == PLAYER2_WINS)
+            printBoard(isFile);
+            return PLAYER1_WINS;
+        }
+        else if(currentState == PLAYER2_WINS) {
             cout << "Player 2 wins!" << endl;
-        else
+            printBoard(isFile);
+            return PLAYER2_WINS;
+        }
+        else {
             cout << "It's a draw!" << endl;
-            
-        printBoard();
+            printBoard(isFile);
+            return DRAW;
+        } 
     }  
+
+    void printReport(int game, int result) {
+        cout << "|" << setw(5) << game << setw(2) << "|" << setw(4) << weigths1[0] << setw(5) << weigths1[1] << setw(5) << weigths1[2] << setw(5) << weigths1[3] << setw(7) << board.mancala1 << setw(3) << "| " << left << setw(5) << board.mancala2 << right << setw(4) << weigths2[0] << setw(5) << weigths2[1] << setw(5) << weigths2[2] << setw(5) << weigths2[3] << setw(2) << "|" << setw(10);
+
+        if(result == PLAYER1_WINS)
+            cout << "Player 1";
+        else if(result == PLAYER2_WINS)
+            cout << "Player 2";
+        else
+            cout << "Draw";
+
+        cout << setw(2) << "|" << endl;;
+    }
 };
