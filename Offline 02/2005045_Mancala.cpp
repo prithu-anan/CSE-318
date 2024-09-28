@@ -4,6 +4,8 @@
 #include <limits>
 using namespace std;
 
+# define DEPTH 10
+
 enum players {
     PLAYER1 = 1,
     PLAYER2 = 2
@@ -175,13 +177,13 @@ class Mancala {
         myPits[pit] = 0;
 
         for (int i = 1; i <= count; i++) {
-            if ((pit + i) % 14 <= 6) {
-                myPits[pit + i]++;
+            if ((pit + i) % 14 <= 6 && (pit + i) % 14 >= 1) {
+                myPits[(pit + i) % 14]++;
 
-                if (i == count && myPits[pit + i] == 1 && opponentPits[7 - (pit + i)] > 0) {
-                    myMancala += myPits[pit + i] + opponentPits[7 - (pit + i)];
-                    myPits[pit + i] = 0;
-                    opponentPits[7 - (pit + i)] = 0;
+                if (i == count && myPits[(pit + i) % 14] == 1 && opponentPits[7 - ((pit + i) % 14)] > 0) {
+                    myMancala += myPits[(pit + i) % 14] + opponentPits[7 - ((pit + i) % 14)];
+                    myPits[(pit + i) % 14] = 0;
+                    opponentPits[7 - ((pit + i) % 14)] = 0;
                 }
             } 
             
@@ -193,14 +195,17 @@ class Mancala {
             } 
             
             else if ((pit + i) % 14 <= 13 && (pit + i) % 14 >= 8)
-                opponentPits[pit + i - 7]++;
+                opponentPits[((pit + i) % 14) - 7]++;
+
+            else if((pit + i) % 14 == 0)
+                opponentMancala++;
         }
 
         return CONTINUE;
     }
 
-    int minimax(Mancala& game, Board state, int depth, bool maximizingPlayer, int alpha, int beta) {
-        if (depth == 0 || game.areAllPitsEmpty(PLAYER1) || game.areAllPitsEmpty(PLAYER2))
+    int minimax(Board state, int depth, bool maximizingPlayer, int alpha, int beta) {
+        if (depth == 0 || areAllPitsEmpty(PLAYER1) || areAllPitsEmpty(PLAYER2))
             return evaluate(state);
 
         if (maximizingPlayer) {
@@ -208,16 +213,16 @@ class Mancala {
 
             for (int pit = 1; pit <= 6; pit++) {
                 Board newState = state;
-                int result = game.move(PLAYER2, pit, newState);
+                int result = move(PLAYER2, pit, newState);
 
                 if (result == INVALID_MOVE) continue;
 
                 int eval;
 
                 if (result == MOVE_AGAIN)
-                    eval = minimax(game, newState, depth - 1, true, alpha, beta);
+                    eval = minimax(newState, depth - 1, true, alpha, beta);
                 else
-                    eval = minimax(game, newState, depth - 1, false, alpha, beta);
+                    eval = minimax(newState, depth - 1, false, alpha, beta);
 
                 maxEval = max(maxEval, eval);
                 alpha = max(alpha, eval);
@@ -234,16 +239,16 @@ class Mancala {
 
             for (int pit = 1; pit <= 6; pit++) {
                 Board newState = state;
-                int result = game.move(PLAYER1, pit, newState);
+                int result = move(PLAYER1, pit, newState);
 
                 if (result == INVALID_MOVE) continue;
 
                 int eval;
 
                 if (result == MOVE_AGAIN) 
-                    eval = minimax(game, newState, depth - 1, false, alpha, beta);
+                    eval = minimax(newState, depth - 1, false, alpha, beta);
                 else
-                    eval = minimax(game, newState, depth - 1, true, alpha, beta);
+                    eval = minimax(newState, depth - 1, true, alpha, beta);
 
                 minEval = min(minEval, eval);
                 beta = min(beta, eval);
@@ -257,7 +262,7 @@ class Mancala {
     }
 
 
-    int getBestMove(Mancala& game, Board state, int depth) {
+    int getBestMove(Board state, int depth) {
         int bestMove = -1;
         int bestValue = numeric_limits<int>::min();
 
@@ -265,7 +270,7 @@ class Mancala {
 
         for (int pit = 1; pit <= 6; pit++) {
             Board newState = state;
-            int result = game.move(PLAYER2, pit, newState);
+            int result = move(PLAYER2, pit, newState);
 
             if (result == INVALID_MOVE) continue;
 
@@ -274,9 +279,9 @@ class Mancala {
             int moveValue;
 
             if (result == MOVE_AGAIN) 
-                moveValue = minimax(game, newState, depth - 1, true, numeric_limits<int>::min(), numeric_limits<int>::max());
+                moveValue = minimax(newState, depth - 1, true, numeric_limits<int>::min(), numeric_limits<int>::max());
             else 
-                moveValue = minimax(game, newState, depth - 1, false, numeric_limits<int>::min(), numeric_limits<int>::max());
+                moveValue = minimax(newState, depth - 1, false, numeric_limits<int>::min(), numeric_limits<int>::max());
 
             if (moveValue > bestValue) {
                 bestValue = moveValue;
@@ -284,9 +289,9 @@ class Mancala {
             }
         }
 
-        if (!foundValidMove) {
+        if (!foundValidMove || bestMove == -1) {
             for (int pit = 1; pit <= 6; pit++) {
-                if (state.pits1[pit] > 0) {
+                if (state.pits2[pit] > 0) {
                     bestMove = pit;
                     break;
                 }
@@ -317,7 +322,7 @@ class Mancala {
             } 
             else {
                 cout << "Player 2's turn:\n";
-                pit = getBestMove(*this, board, 5);
+                pit = getBestMove(board, DEPTH);
                 cout << "Player 2 chooses pit: " << pit << endl;
             }
 
