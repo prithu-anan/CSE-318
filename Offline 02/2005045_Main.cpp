@@ -34,10 +34,11 @@ int main() {
             cout << "-";
         cout << endl;
 
+        // Play 100 games
         for(int game = 1; game <= 100; game++) {
             cout.rdbuf(out.rdbuf());
 
-            mancala.initBoard(H1, H4);
+            mancala.initBoard(H1, H3);
             cout << "Game " << game << ": ";
             int result = mancala.play(isFile);
 
