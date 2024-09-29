@@ -5,8 +5,25 @@
 #include <random>
 using namespace std;
 
-# define DEPTH_1 5
-# define DEPTH_2 5
+/*******************************/
+#define MIN_W1 3
+#define MIN_W2 1
+#define MIN_W3 2
+#define MIN_W4 3
+
+#define MAX_W1 5
+#define MAX_W2 2
+#define MAX_W3 4
+#define MAX_W4 5
+
+#define MIN_BEGINING_DEPTH 4
+#define MIN_MIDDLE_DEPTH 6
+#define MIN_END_DEPTH 8
+
+#define MAX_BEGINING_DEPTH 6
+#define MAX_MIDDLE_DEPTH 8
+#define MAX_END_DEPTH 10
+/*******************************/
 
 enum players {
     PLAYER1 = 0,
@@ -34,6 +51,7 @@ struct Board {
     int mancala1, mancala2;
     int additionalMove1, additionalMove2;
     int capturedStones1, capturedStones2;
+    int moves;
 
     Board() {
         pits1 = vector<int>(7, 4);
@@ -44,6 +62,7 @@ struct Board {
         additionalMove2 = 0;
         capturedStones1 = 0;
         capturedStones2 = 0;
+        moves = 0;
     }
 
     Board(const Board& other) {
@@ -53,6 +72,9 @@ struct Board {
         mancala2 = other.mancala2;
         additionalMove1 = other.additionalMove1;
         additionalMove2 = other.additionalMove2;
+        capturedStones1 = other.capturedStones1;
+        capturedStones2 = other.capturedStones2;
+        moves = other.moves;
     }
 
     int countStones(int player) {
@@ -83,9 +105,8 @@ class Mancala {
     public:
     Mancala();
     void initBoard(int h1, int h2);
-    int play(bool isFile, bool showBoard);
-    void printReport(int game, int result);
-    
+    int play(bool isFile, bool showBoard, bool isPlayer1Human, bool isPlayer2Human);
+    void printReport(int game, int result); 
 };
 
 int Mancala::getRandomNumber(int min, int max) {
@@ -96,13 +117,13 @@ int Mancala::getRandomNumber(int min, int max) {
 void Mancala::initRandomWeights(vector<int>& weights, int numWeights) {
     for (int i = 0; i < numWeights; ++i) {
         if(i == 0)
-            weights.push_back(getRandomNumber(3, 5));
+            weights.push_back(getRandomNumber(MIN_W1, MAX_W1));
         else if(i == 1)
-            weights.push_back(getRandomNumber(1, 2));
+            weights.push_back(getRandomNumber(MIN_W2, MAX_W2));
         else if(i == 2)
-            weights.push_back(getRandomNumber(2, 4));
+            weights.push_back(getRandomNumber(MIN_W3, MAX_W3));
         else if(i == 3)
-            weights.push_back(getRandomNumber(3, 5));
+            weights.push_back(getRandomNumber(MIN_W4, MAX_W4));
     }
         
 
@@ -213,6 +234,7 @@ int Mancala::move(int player, int pit, Board& state) {
 
     int count = myPits[pit];
     myPits[pit] = 0;
+    state.moves++;
 
     for (int i = 1; i <= count; i++) {
         if ((pit + i) % 14 <= 6 && (pit + i) % 14 >= 1) {
@@ -389,7 +411,7 @@ Mancala::Mancala() {
     
     }
 
-int Mancala::play(bool isFile = false, bool showBoard = false) {
+int Mancala::play(bool isFile = false, bool showBoard = false, bool isPlayer1Human = false, bool isPlayer2Human = false) {
     int currentPlayer = PLAYER1;
     int currentState = CONTINUE;
     int pit;
@@ -406,19 +428,37 @@ int Mancala::play(bool isFile = false, bool showBoard = false) {
             break;
         }
 
+        int depth;
+
+        if (board.moves <= 15)
+            depth = getRandomNumber(MIN_BEGINING_DEPTH, MAX_BEGINING_DEPTH);
+        else if(board.moves <= 30)
+            depth = getRandomNumber(MIN_MIDDLE_DEPTH, MAX_MIDDLE_DEPTH);
+        else
+            depth = getRandomNumber(MIN_END_DEPTH, MAX_END_DEPTH);
+
+
         if (currentPlayer == PLAYER1) {
             if(showBoard)
                 cout << "Player 1's turn: ";
-            // cin >> pit;
-            pit = getBestMove(board, DEPTH_1, PLAYER1, true);
+
+            if(isPlayer1Human)
+                cin >> pit;
+            else
+                pit = getBestMove(board, depth, PLAYER1, true);
+                
             if(showBoard)
                 cout << pit << endl;
         }
         else {
             if(showBoard)
                 cout << "Player 2's turn: ";
-            // cin >> pit;
-            pit = getBestMove(board, DEPTH_2, PLAYER2, false);
+
+            if(isPlayer2Human)
+                cin >> pit;
+            else
+                pit = getBestMove(board, depth, PLAYER2, false);
+
             if(showBoard)
                 cout << pit << endl;
         }
