@@ -49,6 +49,8 @@ int main() {
 
             for(int h1 = H1; h1 <= H4; h1++) {
                 for(int h2 = H1; h2 <= H4; h2++) {
+                    printReportHeader();
+
                     for(int game = 1; game <= MATCHES; game++) {
                         cout.rdbuf(out.rdbuf());
 
