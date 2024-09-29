@@ -5,7 +5,8 @@
 #include <random>
 using namespace std;
 
-/*******************************/
+
+/*****************************/
 #define MIN_W1 3
 #define MIN_W2 1
 #define MIN_W3 2
@@ -23,7 +24,8 @@ using namespace std;
 #define MAX_BEGINING_DEPTH 6
 #define MAX_MIDDLE_DEPTH 8
 #define MAX_END_DEPTH 10
-/*******************************/
+/*****************************/
+
 
 enum players {
     PLAYER1 = 0,
@@ -446,7 +448,7 @@ int Mancala::play(bool isFile = false, bool showBoard = false, bool isPlayer1Hum
                 cin >> pit;
             else
                 pit = getBestMove(board, depth, PLAYER1, true);
-                
+
             if(showBoard)
                 cout << pit << endl;
         }
